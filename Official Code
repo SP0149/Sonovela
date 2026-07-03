@@ -1,1 +1,43 @@
+// Core 1 — logic
+void logicTask() {
+  while (true) {
+    // NFC polling
+    nfcTag = nfc.readTag();
+    if (nfcTag != currentVinyl) {
+      if (nfcTag == null) {
+        pausePlayback();
+      } else {
+        loadPageMap(nfcTag.id);
+        currentVinyl = nfcTag.id;
+      }
+    }
 
+    // Encoder reading
+    newPage = readEncoderPosition();
+    if (newPage != lastSetPage) {
+      updatePace(newPage, lastSetPage, timeSinceLastUpdate);
+      lastSetPage = newPage;
+      lastDialUpdateTime = millis();
+    }
+
+    // Page estimation
+    elapsedMinutes = (millis() - lastDialUpdateTime) / 60000.0;
+    estimatedPage = lastSetPage + (elapsedMinutes * averagePace);
+
+    // Song selection
+    newSong = getSongForPage(estimatedPage);
+    if (newSong != currentSong) {
+      currentSong = newSong;
+      playSong(newSong);  // triggers audio on Core 0
+    }
+
+    delay(500);  // poll every 500ms
+  }
+}
+
+// Core 0 — audio
+void audioTask() {
+  while (true) {
+    audio.loop();
+  }
+}
